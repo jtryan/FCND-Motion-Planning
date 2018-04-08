@@ -1,11 +1,12 @@
 import argparse
+import random
 import time
 import msgpack
 from enum import Enum, auto
 
 import numpy as np
 
-from planning_utils import a_star, heuristic, create_grid
+from planning_utils import a_star, heuristic, create_grid, prune_path
 from udacidrone import Drone
 from udacidrone.connection import MavlinkConnection
 from udacidrone.messaging import MsgID
@@ -114,27 +115,31 @@ class MotionPlanning(Drone):
     def plan_path(self):
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
-        TARGET_ALTITUDE = 5
-        SAFETY_DISTANCE = 10
-
-        filename = 'colliders.csv'
+        TARGET_ALTITUDE = 20
+        SAFETY_DISTANCE = 7
 
         self.target_position[2] = TARGET_ALTITUDE
 
-        # read lat0, lon0 from colliders into floating point values
+        filename = 'colliders.csv'
+
+        # TODO: read lat0, lon0 from colliders into floating point values
         with open(filename) as f:
             x, y = f.readline().split(',')
         _, x = x.split(' ')
         _, y = y.lstrip().split(' ')
         lat0 = float(x)
         lon0 = float(y)
-        alt = 0.
 
-        # set home position to (lon0, lat0, 0)
-        self.set_home_position(lon0, lat0, alt)
 
-        # retrieve current global position
-        global_to_local([self._longitude, self._latitude, self._altitude], self.global_home)
+        # TODO: set home position to (lon0, lat0, 0)
+        self.set_home_position(lon0, lat0, 0.0)
+
+        # TODO: retrieve current global position
+        global_position = np.array([self._longitude, self._latitude, self._altitude])
+
+        # TODO: convert to current local position using global_to_local()
+        current_local_position = []
+        current_local_position = global_to_local(global_position, self.global_home)
 
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
@@ -147,14 +152,40 @@ class MotionPlanning(Drone):
 
         # Define starting point on the grid (this is just grid center)
         # TODO: convert start position to current position rather than map center
-        grid_start = (int (self.global_position[0] - north_offset), int(self.global_position[1]) - east_offset)
+        north_start = int(current_local_position[0])
+        east_start = int(current_local_position[1])
+
+        grid_start = ((north_start - north_offset), (east_start - east_offset))
 
         # Set goal as some arbitrary position on the grid
         # TODO: adapt to set goal as latitude / longitude position and convert
-        goal = np.array([-122.396351, 37.794695, 5.0])
-        local_goal = global_to_local(goal, self.global_home)
-        grid_goal = (int(local_goal[0] - north_offset), int(local_goal[1] - east_offset))
+        new_lon = -122.395927
+        new_lat = 37.796595
 
+        # Goal One
+        # new_lon = -122.397745
+        # new_lat = 37.793837
+
+        # Goal Two
+        # new_lon = -122.396640
+        # new_lat =  37.796232
+
+        # Goal Three
+        # new_lon = -122.394324
+        # new_lat =  37.791684
+
+        # Goal Three
+        # new_lon = -122.398938
+        # new_lat =  37.792482
+
+        # Goal Four
+        # new_lon =  -122.401216
+        # new_lat =  37.796713
+
+        goal_position = np.array([new_lon, new_lat, 0.0])
+        goal_local_position = global_to_local(goal_position, self.global_home)
+
+        grid_goal = (int(goal_local_position[0] - north_offset), int(goal_local_position[1] - east_offset))
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
@@ -162,38 +193,14 @@ class MotionPlanning(Drone):
         # or move to a different search space such as a graph (not done here)
         print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
+
         # TODO: prune path to minimize number of waypoints
-
-        def point(p):
-            return np.array([p[0], p[1], 1.]).reshape(1, -1)
-
-        def collinearity_check(p1, p2, p3, epsilon=1e-6):
-            m = np.concatenate((p1, p2, p3), 0)
-            det = np.linalg.det(m)
-            return abs(det) < epsilon
-
-        def prune_path(path):
-            pruned_path = [p for p in path]
-
-            i = 0
-            while i < len(pruned_path) - 2:
-                p1 = point(pruned_path[i])
-                p2 = point(pruned_path[i + 1])
-                p3 = point(pruned_path[i + 2])
-
-                if collinearity_check(p1, p2, p3):
-                    pruned_path.remove(pruned_path[i + 1])
-                else:
-                    i += 1
-            return pruned_path
-
         path = prune_path(path)
         print(len(path))
-        # TODO (if you're feeling ambitious): Try a different approach altogether!
 
+        # TODO (if you're feeling ambitious): Try a different approach altogether!
         # Convert path to waypoints
         waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
-        # Set self.waypoints
         self.waypoints = waypoints
 
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
