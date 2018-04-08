@@ -115,7 +115,7 @@ class MotionPlanning(Drone):
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
         TARGET_ALTITUDE = 5
-        SAFETY_DISTANCE = 5
+        SAFETY_DISTANCE = 10
 
         filename = 'colliders.csv'
 
@@ -134,9 +134,7 @@ class MotionPlanning(Drone):
         self.set_home_position(lon0, lat0, alt)
 
         # retrieve current global position
-
-        current_local_position = global_to_local([self._longitude, self._latitude, self._altitude], self.global_home)
-        print(current_local_position)
+        global_to_local([self._longitude, self._latitude, self._altitude], self.global_home)
 
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
@@ -146,19 +144,16 @@ class MotionPlanning(Drone):
         # Define a grid for a particular altitude and safety margin around obstacles
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
+
         # Define starting point on the grid (this is just grid center)
-        # grid_start = (-north_offset, -east_offset)
         # TODO: convert start position to current position rather than map center
-        grid_start = (int (self.global_position[0]-north_offset), int(self.global_position[1]-east_offset))
+        grid_start = (int (self.global_position[0] - north_offset), int(self.global_position[1]) - east_offset)
 
         # Set goal as some arbitrary position on the grid
-        grid_goal = (-north_offset, -east_offset)
-
         # TODO: adapt to set goal as latitude / longitude position and convert
-
-
-
-
+        goal = np.array([-122.396351, 37.794695, 5.0])
+        local_goal = global_to_local(goal, self.global_home)
+        grid_goal = (int(local_goal[0] - north_offset), int(local_goal[1] - east_offset))
 
 
         # Run A* to find a path from start to goal
@@ -168,12 +163,39 @@ class MotionPlanning(Drone):
         print('Local Start and Goal: ', grid_start, grid_goal)
         path, _ = a_star(grid, heuristic, grid_start, grid_goal)
         # TODO: prune path to minimize number of waypoints
+
+        def point(p):
+            return np.array([p[0], p[1], 1.]).reshape(1, -1)
+
+        def collinearity_check(p1, p2, p3, epsilon=1e-6):
+            m = np.concatenate((p1, p2, p3), 0)
+            det = np.linalg.det(m)
+            return abs(det) < epsilon
+
+        def prune_path(path):
+            pruned_path = [p for p in path]
+
+            i = 0
+            while i < len(pruned_path) - 2:
+                p1 = point(pruned_path[i])
+                p2 = point(pruned_path[i + 1])
+                p3 = point(pruned_path[i + 2])
+
+                if collinearity_check(p1, p2, p3):
+                    pruned_path.remove(pruned_path[i + 1])
+                else:
+                    i += 1
+            return pruned_path
+
+        path = prune_path(path)
+        print(len(path))
         # TODO (if you're feeling ambitious): Try a different approach altogether!
 
         # Convert path to waypoints
         waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
         # Set self.waypoints
         self.waypoints = waypoints
+
         # TODO: send waypoints to sim (this is just for visualization of waypoints)
         self.send_waypoints()
 
