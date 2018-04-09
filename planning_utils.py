@@ -99,7 +99,7 @@ def valid_actions(grid, current_node):
 
     return valid_actions
 
-
+'''
 def a_star(grid, h, start, goal):
     path = []
     path_cost = 0
@@ -148,6 +148,60 @@ def a_star(grid, h, start, goal):
         print('**********************')
         print('Failed to find a path!')
         print('**********************')
+    return path[::-1], path_cost
+
+'''
+
+def a_star(grid, h, start, goal):
+    """
+    Given a grid and heuristic function returns
+    the lowest cost path from start to goal.
+    """
+
+    path = []
+    path_cost = 0
+    queue = PriorityQueue()
+    queue.put((0, start))
+    visited = set(start)
+
+    branch = {}
+    found = False
+
+    while not queue.empty():
+        item = queue.get()
+        current_cost = item[0]
+        current_node = item[1]
+
+        if current_node == goal:
+            print('Found a path.')
+            found = True
+            break
+        else:
+            # Get the new vertexes connected to the current vertex
+            for a in valid_actions(grid, current_node):
+                next_node = (current_node[0] + a.delta[0], current_node[1] + a.delta[1])
+                new_cost = current_cost + a.cost + h(next_node, goal)
+
+                if next_node not in visited:
+                    visited.add(next_node)
+                    queue.put((new_cost, next_node))
+
+                    branch[next_node] = (new_cost, current_node, a)
+
+    if found:
+        # retrace steps
+        n = goal
+        path_cost = branch[n][0]
+        path.append(goal)
+        while branch[n][1] != start:
+            path.append(branch[n][1])
+            n = branch[n][1]
+        path.append(branch[n][1])
+    else:
+        print('**********************')
+        print('Failed to find a path!')
+        print('**********************')
+
     return path[::-1], path_cost
 
 

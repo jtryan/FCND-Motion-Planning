@@ -115,7 +115,7 @@ class MotionPlanning(Drone):
     def plan_path(self):
         self.flight_state = States.PLANNING
         print("Searching for a path ...")
-        TARGET_ALTITUDE = 20
+        TARGET_ALTITUDE = 5
         SAFETY_DISTANCE = 7
 
         self.target_position[2] = TARGET_ALTITUDE
@@ -159,12 +159,12 @@ class MotionPlanning(Drone):
 
         # Set goal as some arbitrary position on the grid
         # TODO: adapt to set goal as latitude / longitude position and convert
-        new_lon = -122.395927
-        new_lat = 37.796595
+        # new_lon = -122.395927
+        # new_lat = 37.796595
 
         # Goal One
-        # new_lon = -122.397745
-        # new_lat = 37.793837
+        new_lon = -122.397745
+        new_lat = 37.793837
 
         # Goal Two
         # new_lon = -122.396640
@@ -186,6 +186,17 @@ class MotionPlanning(Drone):
         goal_local_position = global_to_local(goal_position, self.global_home)
 
         grid_goal = (int(goal_local_position[0] - north_offset), int(goal_local_position[1] - east_offset))
+
+        # goal_pos_global = []
+        # goal_pos_global = [new_lon, new_lat, 0]
+        #
+        # goal_pos_local = []
+        # goal_pos_local = global_to_local(goal_pos_global, self.global_home)
+        #
+        # north_goal = int(goal_pos_local[0])
+        # easth_goal = int(goal_pos_local[1])
+        #
+        # grid_goal = ((north_goal + -north_offset), (easth_goal + -east_offset))
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
