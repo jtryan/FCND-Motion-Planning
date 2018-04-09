@@ -185,7 +185,9 @@ class MotionPlanning(Drone):
         goal_position = np.array([new_lon, new_lat, 0.0])
         goal_local_position = global_to_local(goal_position, self.global_home)
 
-        grid_goal = (int(goal_local_position[0] - north_offset), int(goal_local_position[1] - east_offset))
+        grid_goal = (int(goal_local_position[0]) - north_offset,
+                     int(goal_local_position[1]) - east_offset)
+
 
         # Run A* to find a path from start to goal
         # TODO: add diagonal motions with a cost of sqrt(2) to your A* implementation
