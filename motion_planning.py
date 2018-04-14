@@ -159,30 +159,15 @@ class MotionPlanning(Drone):
 
         # Set goal as some arbitrary position on the grid
         # TODO: adapt to set goal as latitude / longitude position and convert
-        # new_lon = -122.395927
-        # new_lat = 37.796595
 
-        # Goal One
-        new_lon = -122.397745
-        new_lat = 37.793837
+        goal_list = [(37.796595, -122.395927), (37.793837, -122.397745), (37.796232, -122.396640), (37.792482, -122.398938), (37.796713, -122.401216)]
 
-        # Goal Two
-        # new_lon = -122.396640
-        # new_lat =  37.796232
 
-        # Goal Three
-        # new_lon = -122.394324
-        # new_lat =  37.791684
+        goal_lon = goal_list[1][1]
+        goal_lat = goal_list[1][0]
 
-        # Goal Three
-        # new_lon = -122.398938
-        # new_lat =  37.792482
 
-        # Goal Four
-        # new_lon =  -122.401216
-        # new_lat =  37.796713
-
-        goal_position = np.array([new_lon, new_lat, 0.0])
+        goal_position = np.array([goal_lon, goal_lat, 0.0])
         goal_local_position = global_to_local(goal_position, self.global_home)
 
         grid_goal = (int(goal_local_position[0]) - north_offset,
